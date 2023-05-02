@@ -1,25 +1,42 @@
+using Microsoft.EntityFrameworkCore;
+using Api.Models;
+using Api.Repositories;
+using Microsoft.Extensions.FileProviders;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Add custom configuration
+builder.Configuration.AddJsonFile($"{Environment.CurrentDirectory}/appsecrets.json");
 
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Data Layer
+builder.Services.AddDbContext<DatabaseContext>(opt => opt.UseInMemoryDatabase("Api"));
+// Dependency Injection
+builder.Services.AddScoped<UnitOfWork>();
+builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+else
+{
+    app.UseExceptionHandler("/Error");
+    app.UseHsts();
+}
 
+app.UseRouting();
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
 
-app.MapControllers();
+app.UseDefaultFiles(new DefaultFilesOptions { FileProvider = new PhysicalFileProvider(Path.Combine(builder.Environment.ContentRootPath, "wwwroot")), RequestPath = "" });
+app.UseStaticFiles(new StaticFileOptions { FileProvider = new PhysicalFileProvider(Path.Combine(builder.Environment.ContentRootPath, "wwwroot")), RequestPath = "" });
 
+app.MapControllers();
 app.Run();
